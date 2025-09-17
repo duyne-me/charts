@@ -7,15 +7,16 @@ PLATFORM := $(shell uname -m)
 DOCKER_PLATFORM := linux/$(if $(findstring $(PLATFORM),arm64),arm64,amd64)
 
 gen-docs:
-	$(CONTAINER_TOOL) pull $(HELM_DOCS_IMAGE)
-	$(CONTAINER_TOOL) run --rm \
-		-u $(UID) \
-		--platform $(DOCKER_PLATFORM) \
-		-v $(REPODIR):/helm-charts \
-		-w /helm-charts \
-		--entrypoint /bin/helm-docs \
-		$(HELM_DOCS_IMAGE) \
-		-c charts \
-		-t hack/docs/template.tmpl \
-		-t _index.md.gotmpl \
-		-o _index.md
+	@if command -v helm-docs >/dev/null 2>&1; then \
+		helm-docs -c charts; \
+	else \
+		$(CONTAINER_TOOL) pull $(HELM_DOCS_IMAGE); \
+		$(CONTAINER_TOOL) run --rm \
+			-u $(UID) \
+			--platform $(DOCKER_PLATFORM) \
+			-v $(REPODIR):/helm-charts \
+			-w /helm-charts \
+			--entrypoint /helm-docs \
+			$(HELM_DOCS_IMAGE) \
+			-c charts; \
+	fi
