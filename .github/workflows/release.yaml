@@ -95,19 +95,22 @@ jobs:
                 export BADGES
                 export CHANGELOG
                 export RELEASE_DATE="**Release date:** $(date '+%d %b %Y')"
-                export NOTES="$(sed -n '/## Next release/,/## /p' $CHANGELOG | sed -e '$d' -e '1d')"
+                export NOTES="$(sed -n '/## Next release/,/## /p' $CHANGELOG | grep -v "## Next release" | grep -v "^$")"
                 yq -M -i '.annotations["artifacthub.io/changes"] = (load_str(strenv(CHANGELOG)) | capture("## Next release[\s]*(?P<changes>[\s\S]*?)[\s]*##") | .changes | split("\n") | .[] |= sub("^[\s]*-[\s]+", "") | filter(length > 0) | to_yaml)' $CHART_FILE
                 export README=${CHART_DIR}/README.md
                 yq -M -i '.annotations["artifacthub.io/readme"] = load_str(strenv(README))' $CHART_FILE
                 cat <<EOT > ${CHART_DIR}/RELEASE_NOTES
-          # Release notes for version $CHART_VERSION
+# Release notes for version $CHART_VERSION
 
-          $RELEASE_DATE
+$RELEASE_DATE
 
-          $BADGES
-          $NOTES
-          EOT
-                sed -i 's/## Next release/&\n\n- TODO\n\n## $CHART_VERSION\n\n$RELEASE_DATE\n\n$BADGES/' $CHANGELOG
+$BADGES
+$NOTES
+EOT
+                NEW_CONTENT="## $CHART_VERSION\n\n$RELEASE_DATE\n\n$BADGES\n\n$NOTES\n\n## Next release\n\n- TODO"
+                echo -e "$NEW_CONTENT" > ${CHART_DIR}/CHANGELOG.md.new
+                cat $CHANGELOG | sed '1,/## Next release/d' >> ${CHART_DIR}/CHANGELOG.md.new
+                mv ${CHART_DIR}/CHANGELOG.md.new $CHANGELOG
                 envsubst < $CHANGELOG > $CHANGELOG.copy
                 mv $CHANGELOG.copy $CHANGELOG
               fi
@@ -161,5 +164,5 @@ jobs:
             -t "Automatic update CHANGELOGs and READMEs" \
             -b "Automatic update CHANGELOGs and READMEs"
         env:
-          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GH_TOKEN: "${{ secrets.PAT_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.PAT_TOKEN }}"
