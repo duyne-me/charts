@@ -1,0 +1,12 @@
+# Helm Charts Index
+
+{{- range .Charts }}
+## {{ .Name }}
+
+- Latest Version: {{ .LatestVersion }}
+- Description: {{ .Description }}
+- Home: {{ .Home }}
+- Sources: {{ .Sources }}
+- Maintainers: {{ .Maintainers }}
+
+{{- end }}

@@ -1,0 +1,112 @@
+name: "Release charts"
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch or tag to release from'
+        required: false
+        default: main
+
+env:
+  HELM_VERSION: 3.15.1
+  YQ_VERSION: 4.44.2
+
+jobs:
+  release:
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.VM_BOT_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.VM_BOT_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+
+      - name: Install tools
+        uses: yokawasa/action-setup-kube-tools@v0.11.1
+        with:
+          setup-tools: |
+            helmv3
+            yq
+          helm: "${{ env.HELM_VERSION }}"
+          yq: "${{ env.YQ_VERSION }}"
+
+      - name: Add dependencies
+        run: |
+          if [ -f .github/ci/helm-repos.yaml ]; then
+            yq -M eval '.repositories[] | (.name + " " + .url)' .github/ci/helm-repos.yaml | xargs -L 1 helm repo add
+          fi
+          helm repo update
+
+      - name: Generate docs
+        run: |
+          if [ -f Makefile ] && grep -q gen-docs Makefile; then
+            make gen-docs
+          fi
+
+      - name: Generate release notes
+        run: |
+          if [ -f .github/ci/release-notes.sh ]; then
+            bash .github/ci/release-notes.sh
+          fi
+
+      - name: Release
+        if: ${{ hashFiles('charts/*/RELEASE_NOTES') != '' }}
+        uses: helm/chart-releaser-action@v1.6.0
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        with:
+          config: .github/ci/cr.yaml
+          charts_dir: charts
+          skip_existing: true
+          release_notes_file: RELEASE_NOTES
+          changelog_file: _changelog.md
+          index_file: _index.md.gotmpl
+
+      - name: Release OCI
+        if: ${{ hashFiles('charts/*/RELEASE_NOTES') != '' }}
+        run: |
+          helm registry login \
+            -u ${{ github.actor }} \
+            -p ${{ secrets.GITHUB_TOKEN }} \
+            ghcr.io
+          mkdir -p .cr-release-packages
+          for chart in charts/*; do
+            if [ ! -f $chart/RELEASE_NOTES ]; then
+              export CHART_FILE="${chart}/Chart.yaml"
+              export CHART_VERSION="$(yq -M '.version' $CHART_FILE)"
+              echo "no release notes for chart $chart. removing it from uploading..."
+              rm -rf .cr-release-packages/$(basename $chart)-${CHART_VERSION}.tgz
+            fi
+          done
+          find .cr-release-packages -name "*.tgz" -exec helm push {} oci://ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/helm-charts \;
+
+      - name: Automatic update changelogs and readme
+        if: ${{ hashFiles('charts/*/RELEASE_NOTES') != '' }}
+        run: |
+          rm -rf charts/*/RELEASE_NOTES
+          export VM_GIT_BRANCH_NAME="changelog-update-$(date +%s)"
+          git checkout -b "${VM_GIT_BRANCH_NAME}"
+          git add charts/*/CHANGELOG.md
+          git add charts/*/README.md
+          git commit -S -m "Automatic update CHANGELOGs and READMEs"
+          git push origin ${VM_GIT_BRANCH_NAME}
+          gh pr create \
+            -H $(git branch --show-current) \
+            -t "Automatic update CHANGELOGs and READMEs" \
+            -b "Automatic update CHANGELOGs and READMEs"
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
