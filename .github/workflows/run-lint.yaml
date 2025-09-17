@@ -36,7 +36,7 @@ jobs:
       - name: Lint charts with chart-testing (ct)
         run: |
           if git ls-remote --exit-code origin main; then
-            ct lint --config .github/ct.yaml || ct lint
+            ct lint --config .github/ci/ct.yaml || ct lint
           else
             echo "origin/main does not exist yet. Skipping ct lint."
           fi
