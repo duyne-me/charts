@@ -1,0 +1,6 @@
+- name: Generate docs
+  uses: losisin/helm-docs-action@v1
+  with:
+    config: .github/ci/.helm-docs.yaml
+    tool-version: latest
+    ignore-certs: true
