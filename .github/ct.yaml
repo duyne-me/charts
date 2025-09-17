@@ -1,0 +1,7 @@
+# Chart Testing configuration
+# See: https://github.com/helm/chart-testing#configuration
+
+# Set the correct default branch for comparison
+target-branch: main
+
+# Optionally, you can add more configuration here as needed
