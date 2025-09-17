@@ -1,0 +1,33 @@
+name: Setup GitHub Pages
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-pages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Create gh-pages branch
+        run: |
+          # Create and switch to a new orphan branch (no history)
+          git checkout --orphan gh-pages
+          
+          # Remove all files from staging
+          git rm -rf .
+          
+          # Create an empty index.yaml
+          echo "apiVersion: v1
+          entries: {}
+          generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" > index.yaml
+          
+          # Add and commit the index.yaml file
+          git add index.yaml
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git commit -m "Initial gh-pages commit with empty index.yaml"
+          
+          # Push the new branch
+          git push origin gh-pages
