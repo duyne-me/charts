@@ -43,7 +43,7 @@ jobs:
 
       - name: Generate Helm docs
         run: |
-          docker run --rm -v ${{ github.workspace }}/charts:/charts norwoodj/helm-docs:latest --chart-search-root /charts
+            docker run --rm --volume "${{ github.workspace }}/charts:/helm-docs" jnorwood/helm-docs:latest --chart-search-root=/helm-docs
 
       - name: Check for uncommitted changes (docs)
         run: |
