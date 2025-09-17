@@ -78,13 +78,18 @@ jobs:
                 echo "ERROR: Not found 'Next release' section in $CHANGELOG"
                 exit 1
               fi
+              
+              # Useful variables
               export CHART_DIR="$(dirname $CHANGELOG)"
               export CHART_FILE="${CHART_DIR}/Chart.yaml"
               export APP_VERSION="$(yq -M '.appVersion' $CHART_FILE)"
               export CHART_VERSION="$(yq -M '.version' $CHART_FILE)"
+              
+              # If version already released
               if grep -q "^## $CHART_VERSION$" $CHANGELOG; then
                 echo "There is nothing to release for $CHANGELOG"
               else
+                # Release notes file
                 BADGES='![Helm: v3](https://img.shields.io/badge/Helm-v3.14%2B-informational?color=informational&logo=helm&link=https%3A%2F%2Fgithub.com%2Fhelm%2Fhelm%2Freleases%2Ftag%2Fv3.14.0)'
                 if [ "$APP_VERSION" != "null" ]; then
                   export APP_VERSION_HASH="$(echo $APP_VERSION | tr -d '.' | cut -f1 -d '-')"
@@ -92,25 +97,28 @@ jobs:
                   export APP_CHANGELOG=$(yq '.annotations["artifacthub.io/links"] | from_yaml | .[] | select(.name == "Changelog").url + "#" + env(APP_VERSION_HASH)| @uri' $CHART_FILE)
                   BADGES+=' ![AppVersion: '$APP_VERSION'](https://img.shields.io/badge/'$APP_LABEL'-success?logo=VictoriaMetrics&labelColor=gray&link='$APP_CHANGELOG')'
                 fi
+
                 export BADGES
                 export CHANGELOG
                 export RELEASE_DATE="**Release date:** $(date '+%d %b %Y')"
-                export NOTES="$(sed -n '/## Next release/,/## /p' $CHANGELOG | grep -v "## Next release" | grep -v "^$")"
+                export NOTES="$(sed -n '/## Next release/,/## /p' $CHANGELOG | sed -e '$d' -e '1d')"
+
+                # ArtifactHub annotation in Chart.yaml file
                 yq -M -i '.annotations["artifacthub.io/changes"] = (load_str(strenv(CHANGELOG)) | capture("## Next release[\s]*(?P<changes>[\s\S]*?)[\s]*##") | .changes | split("\n") | .[] |= sub("^[\s]*-[\s]+", "") | filter(length > 0) | to_yaml)' $CHART_FILE
                 export README=${CHART_DIR}/README.md
                 yq -M -i '.annotations["artifacthub.io/readme"] = load_str(strenv(README))' $CHART_FILE
+
+                # Create release notes
                 cat <<EOT > ${CHART_DIR}/RELEASE_NOTES
-# Release notes for version $CHART_VERSION
+          # Release notes for version $CHART_VERSION
+          $RELEASE_DATE
 
-$RELEASE_DATE
+          $BADGES
+          $NOTES
+          EOT
 
-$BADGES
-$NOTES
-EOT
-                NEW_CONTENT="## $CHART_VERSION\n\n$RELEASE_DATE\n\n$BADGES\n\n$NOTES\n\n## Next release\n\n- TODO"
-                echo -e "$NEW_CONTENT" > ${CHART_DIR}/CHANGELOG.md.new
-                cat $CHANGELOG | sed '1,/## Next release/d' >> ${CHART_DIR}/CHANGELOG.md.new
-                mv ${CHART_DIR}/CHANGELOG.md.new $CHANGELOG
+                # Update chart version in CHANGELOG
+                sed -i 's/## Next release/&\n\n- TODO\n\n## $CHART_VERSION\n\n$RELEASE_DATE\n\n$BADGES/' $CHANGELOG
                 envsubst < $CHANGELOG > $CHANGELOG.copy
                 mv $CHANGELOG.copy $CHANGELOG
               fi
