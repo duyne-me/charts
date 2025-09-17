@@ -1,0 +1,7 @@
+chart-yaml-schema: .github/ci/chart_schema.yaml
+lint-conf: .github/ci/lintconf.yaml
+target-branch: main
+remote: origin
+helm-extra-args: --timeout 600s
+chart-dirs:
+  - charts/

@@ -1,0 +1,50 @@
+name: Lint and Test Helm Charts
+
+on:
+  pull_request:
+    paths:
+      - 'charts/**'
+      - '.github/workflows/run-lint.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'charts/**'
+      - '.github/workflows/run-lint.yaml'
+
+jobs:
+  lint-helm-charts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install chart-testing (ct)
+        uses: helm/chart-testing-action@v2.6.1
+
+      - name: Lint charts with Helm
+        run: |
+          for chart in charts/*; do
+            if [ -f "$chart/Chart.yaml" ]; then
+              helm lint "$chart"
+            fi
+          done
+
+      # - name: Lint charts with chart-testing (ct)
+      #   run: |
+      #     if git ls-remote --exit-code origin main; then
+      #       ct lint --config .github/ci/ct.yaml || ct lint
+      #     else
+      #       echo "origin/main does not exist yet. Skipping ct lint."
+      #     fi
+
+      - name: Generate Helm docs
+        run: |
+            docker run --rm --volume "${{ github.workspace }}/charts:/helm-docs" jnorwood/helm-docs:latest --chart-search-root=/helm-docs
+
+      - name: Check for uncommitted changes (docs)
+        run: |
+          git diff --exit-code || (echo "Helm docs are not up to date. Please run helm-docs." && exit 1)
