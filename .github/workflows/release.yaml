@@ -7,6 +7,11 @@ on:
         description: 'Branch or tag to release from'
         required: false
         default: main
+  push:
+    branches:
+      - main
+    paths:
+      - 'charts/**'
 
 env:
   HELM_VERSION: 3.15.1
