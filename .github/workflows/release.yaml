@@ -112,6 +112,11 @@ jobs:
               fi
           done
 
+      - name: Configure Git
+        run: |
+          git config --global user.name "$GITHUB_ACTOR"
+          git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
       - name: Release
         if: ${{ hashFiles('charts/*/RELEASE_NOTES') != '' }}
         uses: helm/chart-releaser-action@v1.6.0
@@ -119,11 +124,8 @@ jobs:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         with:
           config: .github/ci/cr.yaml
-          # charts_dir: charts
-          # skip_existing: true
-          # release_notes_file: RELEASE_NOTES
-          # changelog_file: _changelog.md
-          # index_file: _index.md.gotmpl
+          charts_dir: charts
+          skip_existing: true
 
       - name: Release OCI
         if: ${{ hashFiles('charts/*/RELEASE_NOTES') != '' }}
