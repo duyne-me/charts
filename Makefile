@@ -7,16 +7,11 @@ PLATFORM := $(shell uname -m)
 DOCKER_PLATFORM := linux/$(if $(findstring $(PLATFORM),arm64),arm64,amd64)
 
 gen-docs:
-    @if command -v helm-docs >/dev/null 2>&1; then \
-        helm-docs -c charts; \
-    else \
-        $(CONTAINER_TOOL) pull $(HELM_DOCS_IMAGE); \
-        $(CONTAINER_TOOL) run --rm \
-            -u $(UID) \
-            --platform $(DOCKER_PLATFORM) \
-            -v $(REPODIR):/helm-charts \
-            -w /helm-charts \
-            --entrypoint /usr/local/bin/helm-docs \
-            $(HELM_DOCS_IMAGE) \
-            -c charts; \
-    fi
+	$(CONTAINER_TOOL) pull $(HELM_DOCS_IMAGE)
+	$(CONTAINER_TOOL) run --rm \
+		-u $(UID) \
+		--platform $(DOCKER_PLATFORM) \
+		-v $(REPODIR):/helm-charts \
+		-w /helm-charts \
+		$(HELM_DOCS_IMAGE) \
+		-c charts

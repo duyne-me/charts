@@ -1,3 +1,3 @@
-# demo
+# demo2
 
 Helm chart for demo.
