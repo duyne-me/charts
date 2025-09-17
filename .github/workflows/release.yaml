@@ -153,7 +153,7 @@ jobs:
           git checkout -b "${VM_GIT_BRANCH_NAME}"
           git add charts/*/CHANGELOG.md
           git add charts/*/README.md
-          git commit -S -m "Automatic update CHANGELOGs and READMEs"
+          git commit -m "Automatic update CHANGELOGs and READMEs"
           git push origin ${VM_GIT_BRANCH_NAME}
           gh pr create \
             -H $(git branch --show-current) \
