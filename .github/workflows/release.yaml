@@ -23,6 +23,7 @@ jobs:
       contents: write
       packages: write
       id-token: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
