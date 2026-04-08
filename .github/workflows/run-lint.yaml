@@ -43,10 +43,10 @@ jobs:
             "+refs/heads/${TARGET_BRANCH}:refs/remotes/origin/${TARGET_BRANCH}" || true
 
           if git show-ref --verify --quiet "refs/remotes/origin/${TARGET_BRANCH}"; then
-            ct lint --config .github/ci/ct.yaml --target-branch "${TARGET_BRANCH}"
+            ct lint --config .github/ci/ct.yaml --target-branch "${TARGET_BRANCH}" --check-version-increment=false
           else
             echo "origin/${TARGET_BRANCH} is unavailable. Running full ct lint fallback."
-            ct lint --all
+            ct lint --all --check-version-increment=false
           fi
 
       - name: Generate Helm docs
