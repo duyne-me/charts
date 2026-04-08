@@ -4,6 +4,12 @@
 
 A Helm chart for Kubernetes
 
+## Maintainers
+
+| Name | Email | Url |
+| ---- | ------ | --- |
+| charts-maintainers | <charts@example.com> |  |
+
 ## Values
 
 | Key | Type | Default | Description |
