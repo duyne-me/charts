@@ -1,6 +1,7 @@
 apiVersion: v2
 name: demo
 description: A Helm chart for Kubernetes
+annotations: {}
 
 # A chart can be either an 'application' or a 'library' chart.
 #
